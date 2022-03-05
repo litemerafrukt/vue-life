@@ -1,57 +1,75 @@
-import { Cell } from "./Cell";
+import {
+  randomLife,
+  createCell,
+  type Cell,
+  isCell,
+  nextGeneration,
+  stringify as stringifyCell,
+} from "./Cell";
 
-const isCell = (unknown: unknown): unknown is Cell => unknown instanceof Cell;
+export type Game = {
+  kind: "Game";
+  columns: number;
+  rows: number;
+  cells: Cell[][];
+};
 
-export class Game {
-  public cells: Cell[][];
+export function createGame(columns: number, rows: number): Game {
+  const cells = Array.from({ length: rows }).map(() =>
+    Array.from({ length: columns }).map(() => createCell(randomLife()))
+  );
 
-  constructor(private columns: number, private rows: number) {
-    this.cells = Array.from({ length: rows }).map(() =>
-      Array.from({ length: columns }).map(() => new Cell())
-    );
-  }
+  return {
+    kind: "Game",
+    columns,
+    rows,
+    cells,
+  };
+}
 
-  toString(): string {
-    return this.cells
-      .map((row) => row.map((cell) => `${cell}`).join(" "))
-      .join("\n");
-  }
+export function stringify(game: Game) {
+  return game.cells
+    .map((row) => row.map((cell) => stringifyCell(cell)).join(" "))
+    .join("\n");
+}
 
-  loop() {
-    const newWorld = [];
+export function advance(game: Game): Game {
+  const nextGenerationCells: Cell[][] = [];
 
-    for (let row = 0; row < this.rows; row++) {
-      const newRow = [];
-      for (let column = 0; column < this.columns; column++) {
-        const currentCell = this.cells[row][column];
-        const neighbours = this.neighbours(row, column);
-        const nextGenerationCell = currentCell.nextGeneration(neighbours);
+  for (let row = 0; row < game.rows; row++) {
+    const newCellRow = [];
+    for (let column = 0; column < game.columns; column++) {
+      const currentCell = game.cells[row][column];
+      const neighbours = getNeighbours(game, row, column);
+      const nextGenerationCell = nextGeneration(currentCell, neighbours);
 
-        newRow.push(nextGenerationCell);
-      }
-      newWorld.push(newRow);
+      newCellRow.push(nextGenerationCell);
     }
-
-    this.cells = newWorld;
+    nextGenerationCells.push(newCellRow);
   }
 
-  private getCell(row: number, column: number): Cell | null {
-    if (row < 0 || row >= this.rows) return null;
-    if (column < 0 || column >= this.columns) return null;
+  return {
+    ...game,
+    cells: nextGenerationCells,
+  };
+}
 
-    return this.cells[row][column];
-  }
+function getCell(game: Game, row: number, column: number): Cell | null {
+  if (row < 0 || row >= game.rows) return null;
+  if (column < 0 || column >= game.columns) return null;
 
-  private neighbours(row: number, column: number): Cell[] {
-    // prettier-ignore
-    const neighbours = [
-      [-1, -1], [-1, 0], [-1, 1],
-      [0,  -1],/* self */[0,  1],
-      [1,  -1], [1,  0], [1,  1],
-    ]
-    .map(([y, x]) => this.getCell(row + y, column + x))
-    .filter(isCell);
+  return game.cells[row][column];
+}
 
-    return neighbours;
-  }
+function getNeighbours(game: Game, row: number, column: number): Cell[] {
+  // prettier-ignore
+  const neighbours = [
+    [-1, -1], [-1, 0], [-1, 1],
+    [0,  -1],/* self */[0,  1],
+    [1,  -1], [1,  0], [1,  1],
+  ]
+  .map(([y, x]) => getCell(game, row + y, column + x))
+  .filter(isCell);
+
+  return neighbours;
 }
