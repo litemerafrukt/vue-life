@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plain of life</title>
+
+  <style>
+    pre {
+      font-size: 3px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <pre id="world"></pre>
+
+  <script lang="js">
+    const Alive = {
+      False: 0,
+      True: 1,
+    }
+
+    function randomLife(randomizer = Math.random) {
+      return randomizer() > 0.5 ? Alive.True : Alive.False;
+    }
+
+    const isCell = (unknown) =>
+      !!unknown && unknown.kind === "Cell";
+
+    function createCell(isAlive) {
+      return {
+        kind: "Cell",
+        isAlive,
+      };
+    }
+
+    function nextGeneration(cell, neighbours) {
+      const surrounding = neighbours
+        .map((cell) => cell.isAlive)
+        .reduce((a, b) => a + b, 0);
+
+      if (cell.isAlive && surrounding > 1 && surrounding <= 3) {
+        return createCell(Alive.True);
+      }
+
+      if (!cell.isAlive && surrounding === 3) {
+        return createCell(Alive.True);
+      }
+
+      return createCell(Alive.False);
+    }
+
+    function stringifyCell(cell) {
+      return cell.isAlive ? "X" : " ";
+    }
+
+    function createGame(columns, rows) {
+      const cells = Array.from({ length: rows }).map(() =>
+        Array.from({ length: columns }).map(() => createCell(randomLife()))
+      );
+
+      return {
+        kind: "Game",
+        columns,
+        rows,
+        cells,
+      };
+    }
+
+    function stringifyGame(game) {
+      return game.cells
+        .map((row) => row.map((cell) => stringifyCell(cell)).join(" "))
+        .join("\n");
+    }
+
+    function advance(game) {
+      const nextGenerationCells = [];
+
+      for (let row = 0; row < game.rows; row++) {
+        const newCellRow = [];
+        for (let column = 0; column < game.columns; column++) {
+          const currentCell = game.cells[row][column];
+          const neighbours = getNeighbours(game, row, column);
+          const nextGenerationCell = nextGeneration(currentCell, neighbours);
+
+          newCellRow.push(nextGenerationCell);
+        }
+        nextGenerationCells.push(newCellRow);
+      }
+
+      return {
+        ...game,
+        cells: nextGenerationCells,
+      };
+    }
+
+    function getCell(game, row, column) {
+      if (row < 0 || row >= game.rows) return null;
+      if (column < 0 || column >= game.columns) return null;
+
+      return game.cells[row][column];
+    }
+
+    function getNeighbours(game, row, column) {
+      // prettier-ignore
+      const neighbours = [
+        [-1, -1], [-1, 0], [-1, 1],
+        [0, -1],/* self */[0, 1],
+        [1, -1], [1, 0], [1, 1],
+      ]
+        .map(([y, x]) => getCell(game, row + y, column + x))
+        .filter(isCell);
+
+      return neighbours;
+    }
+
+    const world = document.getElementById('world');
+    let game = createGame(393, 293);
+
+    setInterval(() => {
+      game = advance(game);
+      world.innerText = stringifyGame(game);
+    }, 135);
+
+
+  </script>
+
+</body>
+
+</html>
